@@ -1,6 +1,6 @@
 {
   "name": "CircuitDigestCloud",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Arduino client for the CircuitDigest Cloud (Anedya) MQTT platform — publishes telemetry to project slots over TLS.",
   "keywords": "mqtt, cloud, iot, circuitdigest",
   "authors": { "name": "Jobit Joseph", "email": "jobitjoseph1@gmail.com", "maintainer": true },

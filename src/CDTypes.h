@@ -59,5 +59,9 @@ enum CDError : uint8_t {
     CD_ERR_INVALID_JSON     = 7,
     CD_ERR_TYPE_MISMATCH    = 8,
     CD_ERR_UNKNOWN_VARIABLE = 9,
-    CD_ERR_OUT_OF_MEMORY    = 10
+    CD_ERR_OUT_OF_MEMORY    = 10,
+    CD_ERR_NO_API_KEY       = 11,  // sendImage: setApiKey() not called
+    CD_ERR_HTTP_CONNECT     = 12,  // sendImage: TLS/TCP connect to the API host failed
+    CD_ERR_HTTP_STATUS      = 13,  // sendImage: server returned a non-2xx status
+    CD_ERR_BAD_ARGUMENT     = 14   // sendImage: empty image / bad parameter
 };

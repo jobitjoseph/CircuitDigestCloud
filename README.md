@@ -92,6 +92,9 @@ Find these in the CircuitDigest Cloud dashboard → device setup panel:
 | `setCredentials(deviceId, connectionKey)` | Set Anedya MQTT credentials. Call before `begin()`. |
 | `setRegion(region)` | Anedya region; sets broker to `mqtt.<region>.anedya.io`. Default `ap-in-1`. |
 | `setServer(host, port)` | Override broker host/port directly. |
+| `setApiHost(host, port)` | CircuitDigest Cloud HTTP API for `sendImage`. Default `www.circuitdigest.cloud:443`. |
+| `setApiKey(apiKey)` | Dashboard API key (`cd_live_…`) for `sendImage`. Different from the Connection Key. |
+| `sendImage(client, data, len, contentType, filename)` | Upload a captured image over HTTPS. Pass a **separate** TLS client. Blocks until done. |
 | `setBufferSize(bytes)` | PubSubClient buffer size. Default 512, min 256. |
 | `setHeartbeatInterval(seconds)` | MQTT keepalive cadence used for liveness. Default 60. |
 | `setAutoAck(bool)` | Global auto-ack default for controls. Default `true`. |
@@ -122,7 +125,9 @@ want to publish straight to a slot like `cd.publishVariable("float0", v)`.
 | `CD_ENUM` | quoted string | `const char*` | status |
 | `CD_AUTO` | auto-detected on first use | — | — |
 
-> Geo (lat/long) variables are not supported in this release.
+> Geo (lat/long) variables are not supported in this release. String/enum (status-slot)
+> catalog keys are not exposed yet either — send color as a packed integer (see
+> `07_ColorPicker`) and use float/boolean keys for everything else.
 
 ### `CDValue` — inbound control payload
 
@@ -169,6 +174,42 @@ void handleRelay(const char* var, CDValue v) {
 
 Device online/offline status is derived from the MQTT session. `setHeartbeatInterval(seconds)` maps onto
 the MQTT keepalive so PubSubClient pings keep the session — and the dashboard's online indicator — alive.
+The default (60 s) keeps the device comfortably inside the cloud's offline threshold; no separate heartbeat
+call is needed.
+
+---
+
+## Sending Images
+
+Upload a captured frame (e.g. from an ESP32-CAM) to the device's image on CircuitDigest Cloud over HTTPS.
+This uses the cloud **HTTP API**, not MQTT, so it needs two things the telemetry path doesn't:
+
+1. A **dashboard API key** (`cd_live_…`, from the dashboard → API Keys) — set with `setApiKey()`. This is
+   **different** from the MQTT Connection Key.
+2. A **separate** TLS client — don't reuse the one driving MQTT. The call blocks until the upload finishes.
+
+```cpp
+#include <WiFiClientSecure.h>
+WiFiClientSecure httpsNet;     // separate client, just for the upload
+
+void setup() {
+    // ... usual cd.setCredentials(...) / cd.begin() for MQTT telemetry ...
+    cd.setApiKey("cd_live_xxxxxxxxxxxxxxxx");   // dashboard API key
+    // cd.setApiHost("www.circuitdigest.cloud", 443);  // default — override only for self-hosting
+}
+
+void uploadFrame(const uint8_t* jpeg, size_t len) {
+    httpsNet.setInsecure();    // dev only — pin the CA for production
+    if (cd.sendImage(httpsNet, jpeg, len, "image/jpeg")) {
+        Serial.println("image uploaded");
+    } else {
+        Serial.printf("upload failed, err=%d\n", cd.lastError());
+    }
+}
+```
+
+Accepts `image/jpeg`, `image/png`, `image/gif`, `image/webp`, up to **5 MB**. The image bytes are streamed
+as-is (no extra in-RAM copy). See example `06_SendImage`.
 
 ---
 
@@ -200,8 +241,10 @@ client id, so each device connects with a unique identity.
 | `01_SensorAndControl` | Publish a temperature sensor + control a GPIO from the dashboard — **start here** |
 | `02_BasicSensor` | Publish a single float sensor every 5 seconds |
 | `03_BasicControl` | Receive a boolean control and drive `LED_BUILTIN`, auto-ack |
-| `04_AllVariableTypes` | All types as sensors and controls with their slots |
+| `04_AllVariableTypes` | Float / int / bool sensors and controls with their catalog slots |
 | `05_ManualAckAndManyControls` | Manual ack with GPIO read-back, mixed ack modes, global fallback |
+| `06_SendImage` | Upload an image to the device over HTTPS with `sendImage` (ESP32-CAM notes inside) |
+| `07_ColorPicker` | Drive an RGB LED from the Color Picker widget — unpack the packed `0xRRGGBB` integer |
 
 All examples target **ESP32 and ESP8266**. Fill in WiFi credentials, your Physical Device ID / Connection Key, and the
 per-variable slots, then open Serial Monitor at 115200 baud for `[CD]` debug output.

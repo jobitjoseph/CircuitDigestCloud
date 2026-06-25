@@ -20,11 +20,19 @@ const char *WIFI_SSID = "your_ssid";
 const char *WIFI_PASS = "your_password";
 const char *DEVICE_ID = "your-device-id-here";          // Physical Device ID (device setup panel)
 const char *CONNECTION_KEY = "your-connection-key"; // Connection Key (device setup panel)
-const char *LIGHT_SLOT = "status0";                 // control variable slot
+const char *LIGHT_SLOT  = "light-1";  // control variable slot (boolean catalog key)
 // ---------------------------------------------------------------------------
 
 WiFiClientSecure net;
 CircuitDigestCloud cd(net);
+
+// Re-apply TLS config after the library stops the transport between connects —
+// WiFiClientSecure loses setInsecure()/setCACert() on stop(), so without this the
+// next TLS handshake fails (PubSubClient state=-2).
+void resetTransport() {
+  net.stop();
+  net.setInsecure(); // dev only — pin the Anedya CA for production
+}
 
 // Control callback — v.asBool() / v.asInt() / v.asFloat() / v.asString() / v.type()
 void handleLight(const char *var, CDValue v) {
@@ -42,6 +50,7 @@ void setup() {
   }
 
   net.setInsecure(); // dev only — pin the Anedya CA for production
+  cd.setTransportResetCallback(resetTransport); // re-apply TLS after transport stops
 
   cd.setCredentials(DEVICE_ID, CONNECTION_KEY);
   cd.setDebug(&Serial); // prints debug messages to Serial
@@ -49,6 +58,8 @@ void setup() {
   // onChange(name, cb, ackMode, type, slot)
   cd.onChange("light_1", handleLight, CD_ACK_AUTO, CD_BOOL, LIGHT_SLOT);
 
+  // Heartbeat is automatic — pings Anedya every 60s to stay shown "online".
+  // cd.setHeartbeatInterval(30);   // optional: change cadence (5s floor; 0 disables). See example 08.
   cd.begin();
 }
 

@@ -7,6 +7,10 @@ CDError	KEYWORD1
 setCredentials	KEYWORD2
 setRegion	KEYWORD2
 setServer	KEYWORD2
+setApiHost	KEYWORD2
+setApiKey	KEYWORD2
+sendImage	KEYWORD2
+heartbeat	KEYWORD2
 setBufferSize	KEYWORD2
 setHeartbeatInterval	KEYWORD2
 setAutoAck	KEYWORD2

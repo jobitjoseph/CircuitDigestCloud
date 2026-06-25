@@ -74,6 +74,8 @@ void setup() {
   // value back so the dashboard widget confirms (and the slider/toggle stops blinking).
   cd.onChange("gpio", handleGpio, CD_ACK_AUTO, CD_BOOL, GPIO_SLOT);
 
+  // Heartbeat is automatic — pings Anedya every 60s to stay shown "online".
+  // cd.setHeartbeatInterval(30);   // optional: change cadence (5s floor; 0 disables). See example 08.
   cd.begin(); // validates credentials; connection starts on first loop()
 }
 

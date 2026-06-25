@@ -28,6 +28,14 @@ const char *TEMPERATURE_SLOT = "temperature-1";
 WiFiClientSecure net;
 CircuitDigestCloud cd(net);
 
+// Re-apply TLS config after the library stops the transport between connects —
+// WiFiClientSecure loses setInsecure()/setCACert() on stop(), so without this the
+// next TLS handshake fails (PubSubClient state=-2).
+void resetTransport() {
+  net.stop();
+  net.setInsecure();
+}
+
 void setup() {
   Serial.begin(115200);
   delay(200);
@@ -40,6 +48,7 @@ void setup() {
   // Dev convenience: skip TLS certificate validation. For production, pin the
   // Anedya root CA with net.setCACert(...) instead.
   net.setInsecure();
+  cd.setTransportResetCallback(resetTransport); // re-apply TLS after transport stops
 
   cd.setCredentials(DEVICE_ID, CONNECTION_KEY);
   cd.setDebug(&Serial); // prints debug messages to Serial
@@ -50,6 +59,8 @@ void setup() {
   // Types: CD_AUTO | CD_INT | CD_FLOAT | CD_BOOL | CD_STRING | CD_ENUM
   cd.registerVariable("temperature", CD_FLOAT, TEMPERATURE_SLOT);
 
+  // Heartbeat is automatic — pings Anedya every 60s to stay shown "online".
+  // cd.setHeartbeatInterval(30);   // optional: change cadence (5s floor; 0 disables). See example 08.
   cd.begin(); // validates credentials; connection starts on first loop()
 }
 
